@@ -26,14 +26,25 @@ export const useNowPlaying = (stationName: string) => {
     // Use the specified WebSocket URL
     socket = io('wss://basic-radio.subasically.me/api/live/nowplaying/websocket');
 
-    // Listen for now playing updates from the server
+    socket.on('connect', () => {
+      console.log('Connected to WebSocket');
+      // Emit a request to subscribe to updates for the specific station
+      socket.emit('subscribe', { station: stationName });
+    });
+
     socket.on('now-playing-update', (data: NowPlaying) => {
       handleNowPlayingUpdate(data);
     });
 
-    // Emit a request to subscribe to updates for the specific station
-    socket.emit('subscribe', { station: stationName });
+    socket.on('connect_error', (err) => {
+      console.error('Connection error:', err);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('WebSocket disconnected');
+    });
   });
+
 
   onUnmounted(() => {
     socket?.disconnect();
