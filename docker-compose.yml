@@ -1,13 +1,18 @@
 services:
   basic-radio:
-    build: .
+    image: node:18-alpine # or another Node version as per your requirements
     container_name: basic-radio
-    restart: always
+    working_dir: /app
+    volumes:
+      - .:/app
+    ports:
+      - 3010:3010
     environment:
       - NODE_ENV=production
       - NUXT_PORT=3010
-    expose:
-      - 3010
+    command: >
+      sh -c "npm install && npm run build && npm run start"
+    restart: always
     networks:
       - basic-network
 
