@@ -1,0 +1,16 @@
+services:
+  basic-radio:
+    build: .
+    container_name: basic-radio
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - NUXT_PORT=3010
+    expose:
+      - 3010
+    networks:
+      - basic-network
+
+networks:
+  basic-network:
+    external: true
