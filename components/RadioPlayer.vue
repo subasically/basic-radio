@@ -41,6 +41,7 @@ const sound = new Howl({
 });
 
 const play = () => {
+  sound.stop();
   sound.play();
 }
 
