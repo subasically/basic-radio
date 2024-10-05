@@ -1,21 +1,23 @@
-# Use an official Node.js image as a base
-FROM node:18-alpine
+# Use the official Node.js image for AMD64 architecture
+FROM --platform=linux/amd64 node:20-alpine
 
-# Set the working directory in the container
-WORKDIR /usr/src/app
+# Set the working directory
+WORKDIR /app
 
-# Copy package.json and install dependencies
-COPY package*.json ./
-RUN npm install
+# Copy package.json and yarn.lock first to leverage Docker cache
+COPY package.json yarn.lock ./
 
-# Copy the rest of the application files
+# Install dependencies
+RUN yarn install --frozen-lockfile
+
+# Copy the rest of the application code
 COPY . .
 
-# Build the Nuxt app for production
-RUN npm run build
+# Build the Nuxt application
+RUN yarn build
 
-# Expose port (default for Nuxt is 3000)
-EXPOSE 3000
+# Expose the port that the app runs on
+EXPOSE 3010
 
-# Start the Nuxt app
-CMD ["npm", "run", "start"]
+# Start the application
+CMD ["yarn", "start"]
