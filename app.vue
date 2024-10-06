@@ -25,7 +25,7 @@ const nowPlaying = ref<any>({
 
 // Function to fetch the nowPlaying data
 async function getNowPlaying() {
-  const res = await $fetch('http://basic-radio.subasically.me/api/nowplaying', {
+  const res = await $fetch('https://basic-radio.subasically.me/api/nowplaying', {
     method: 'GET',
     cache: 'no-cache',
   });
