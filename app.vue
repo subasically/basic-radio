@@ -1,4 +1,5 @@
 <script setup lang="ts">
+// Define the tabs
 const items = [{
   slot: 'narodna',
   label: 'Narodna Muzika'
@@ -9,6 +10,39 @@ const items = [{
   slot: 'trending',
   label: 'Trending Muzika'
 }]
+
+// Create a reactive reference for the nowPlaying data
+const nowPlaying = ref<any>({
+  now_playing: {
+    song: {
+      title: '',
+      artist: '',
+      album: '',
+      art: ''
+    }
+  }
+});
+
+// Function to fetch the nowPlaying data
+async function getNowPlaying() {
+  const res = await $fetch('http://basic-radio.subasically.me/api/nowplaying', {
+    method: 'GET',
+    cache: 'no-cache',
+  });
+  return res[0]?.now_playing || {
+    song: {
+      title: '',
+      artist: '',
+      album: '',
+      art: ''
+    }
+  };
+}
+
+// Fetch the data when the component is mounted
+onMounted(async () => {
+  nowPlaying.value = await getNowPlaying();
+});
 </script>
 
 <template>
@@ -18,20 +52,21 @@ const items = [{
       <template #narodna="{ item }">
         <UCard>
           <RadioPlayer stationUrl="https://basic-radio.subasically.me/listen/narodna_muzika/radio"
-            stationName="narodna" />
+            stationName="narodna_muzika" :nowPlaying="nowPlaying" />
         </UCard>
       </template>
 
       <template #pop="{ item }">
         <UCard>
-          <RadioPlayer stationUrl="https://basic-radio.subasically.me/listen/pop_muzika/radio" stationName="pop" />
+          <RadioPlayer stationUrl="https://basic-radio.subasically.me/listen/pop_muzika/radio" stationName="pop_muzika"
+            :nowPlaying="nowPlaying" />
         </UCard>
       </template>
 
       <template #trending="{ item }">
         <UCard>
           <RadioPlayer stationUrl="https://basic-radio.subasically.me/listen/trending_muzika/radio"
-            stationName="trending" />
+            stationName="trending_muzika" :nowPlaying="nowPlaying" />
         </UCard>
       </template>
     </UTabs>

@@ -1,11 +1,11 @@
 <template>
   <div>
     <h2>Now Playing</h2>
-    <div v-if="nowPlaying.title">
-      <p><strong>Title:</strong> {{ nowPlaying.title }}</p>
-      <p><strong>Artist:</strong> {{ nowPlaying.artist }}</p>
-      <p><strong>Album:</strong> {{ nowPlaying.album }}</p>
-      <img v-if="nowPlaying.image" :src="nowPlaying.image" alt="Album Art" />
+    <div v-if="nowPlaying.song">
+      <img v-if="nowPlaying.song.art" :src="nowPlaying.song.art" alt="Album Art" width="100" height="100" />
+      <p><strong>Title:</strong> {{ nowPlaying.song.title }}</p>
+      <p><strong>Artist:</strong> {{ nowPlaying.song.artist }}</p>
+      <p><strong>Album:</strong> {{ nowPlaying.song.album }}</p>
     </div>
     <div v-else class="py-4">
       <p>No song is currently playing.</p>
@@ -19,15 +19,16 @@
 
 <script lang="ts" setup>
 import { Howl } from 'howler';
-import { useNowPlaying } from '@/composables/nowPlaying';
-
 
 const props = defineProps<{
   stationUrl: string,
-  stationName: string
+  stationName: string,
+  nowPlaying: any
 }>()
 
-const { nowPlaying } = useNowPlaying(props.stationName);
+onMounted(() => {
+  console.log(props.nowPlaying);
+})
 
 const sound = new Howl({
   src: [props.stationUrl],
