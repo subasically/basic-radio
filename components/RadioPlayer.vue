@@ -1,49 +1,63 @@
 <template>
-  <div>
+  <div class="radio-player max-w-md mx-auto">
     <div v-if="nowPlaying.song">
       <img
         v-if="nowPlaying.song.art"
-        :src="nowPlaying.song.art"
+        :src="isDev ? 'https://placehold.co/1000' : nowPlaying.song.art"
         alt="Album Art"
+        class="object-cover rounded-lg mb-3"
       />
-      <h2 class="text-lg font-bold">{{ nowPlaying.song.title }}</h2>
-      <h3>{{ nowPlaying.song.artist }}</h3>
-      <h4 v-if="nowPlaying.song.album">{{ nowPlaying.song.album }}</h4>
       <div class="flex flex-row items-center my-2">
         <div class="mr-1">{{ formatTime(elapsedTime) }}</div>
         <div
-          class="flex-1 flex-shrink-0 basis-auto bg-gray-200 rounded-full h-2.5 dark:bg-gray-700"
+          class="flex-1 flex-shrink-0 basis-auto bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 overflow-hidden"
         >
           <div
-            class="bg-blue-600 h-2.5 rounded-full"
+            class="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-in-out"
             :style="{ width: songProgressWidth + '%' }"
           ></div>
         </div>
         <div class="ml-1">{{ formatTime(songDuration) }}</div>
       </div>
-      <!-- <p>Elapsed Time: {{ formatTime(elapsedTime) }}</p> -->
-      <!-- <p>Remaining Time: {{ formatTime(remainingTime) }}</p> -->
-      <!-- <p>Total Time: {{ formatTime(songDuration) }}</p> -->
+      <h2 class="text-lg font-bold">{{ nowPlaying.song.title }}</h2>
+      <h3>{{ nowPlaying.song.artist }}</h3>
+      <h4 v-if="nowPlaying.song.album">{{ nowPlaying.song.album }}</h4>
 
-      <div class="flex space-x-4">
-        <UButton v-if="!isPlaying" @click="play">PLAY</UButton>
-        <UButton v-else @click="stop">STOP</UButton>
+      <div class="flex justify-center mt-4">
+        <UButton
+          v-if="!isPlaying"
+          :ui="{ rounded: 'rounded-full' }"
+          size="xl"
+          icon="i-heroicons-play"
+          @click="play"
+          >PLAY</UButton
+        >
+        <UButton
+          v-else
+          :ui="{ rounded: 'rounded-full' }"
+          size="xl"
+          icon="i-heroicons-stop"
+          @click="stop"
+          >STOP</UButton
+        >
       </div>
 
       <audio
         ref="audio"
         :src="stationUrl"
         :title="nowPlaying.song.artist + ' - ' + nowPlaying.song.title"
+        @play="isPlaying = true"
+        @pause="isPlaying = false"
       ></audio>
     </div>
-    <div v-else class="py-4">
-      <p>No song is currently playing.</p>
+    <div v-else class="py-4 text-center">
+      <p>Loading...</p>
     </div>
   </div>
 </template>
 
 <script setup>
-// Props passed from App.vue
+const isDev = process.env.NODE_ENV === "development";
 const props = defineProps({
   stationUrl: {
     type: String,
@@ -60,8 +74,7 @@ const audio = ref(null);
 const isPlaying = ref(false);
 const songDuration = ref(0);
 const elapsedTime = ref(0);
-const remainingTime = ref(0);
-const songProgressWidth = ref(0); // This holds the percentage width for the progress bar
+const songProgressWidth = ref(0); // Holds the percentage width for the progress bar
 
 // Helper function to format time in minutes:seconds
 const formatTime = (seconds) => {
@@ -75,7 +88,6 @@ const play = () => {
   if (audio.value) {
     audio.value.play();
     isPlaying.value = true;
-    startTimer(); // Start the timer when playing
   }
 };
 
@@ -84,41 +96,18 @@ const stop = () => {
   if (audio.value) {
     audio.value.pause(); // Use pause instead of stop
     isPlaying.value = false;
-    clearInterval(timer); // Clear the timer
-  }
-};
-
-// Timer to update elapsed time and progress bar
-let timer = null;
-const startTimer = () => {
-  if (!timer) {
-    timer = setInterval(() => {
-      if (audio.value && isPlaying.value) {
-        elapsedTime.value = Math.min(
-          elapsedTime.value + 1,
-          props.nowPlaying.duration
-        );
-        remainingTime.value = Math.max(
-          props.nowPlaying.duration - elapsedTime.value,
-          0
-        );
-        songProgressWidth.value =
-          (elapsedTime.value / props.nowPlaying.duration) * 100;
-      }
-    }, 1000); // Update every second
   }
 };
 
 // Update progress based on props
 const updateProgress = () => {
-  if (props.nowPlaying.duration) {
-    // Update only if duration is defined
-    elapsedTime.value = props.nowPlaying.elapsed;
-    remainingTime.value = props.nowPlaying.remaining;
-    songDuration.value = props.nowPlaying.duration;
-    songProgressWidth.value =
-      (elapsedTime.value / props.nowPlaying.duration) * 100;
-  }
+  // Update elapsed time and duration based on nowPlaying
+  elapsedTime.value = props.nowPlaying.elapsed || 0; // Update elapsed time
+  songDuration.value = props.nowPlaying.duration || 0; // Set the duration
+
+  // Update progress width
+  songProgressWidth.value =
+    songDuration.value > 0 ? (elapsedTime.value / songDuration.value) * 100 : 0; // Avoid division by zero
 };
 
 // Watch for updates in the nowPlaying object
@@ -136,11 +125,18 @@ onMounted(() => {
     audio.value.addEventListener("ended", () => {
       isPlaying.value = false;
       elapsedTime.value = 0; // Reset elapsed time when song ends
-      remainingTime.value = props.nowPlaying.duration; // Reset remaining time
-      songProgressWidth.value = 100; // Reset progress bar
-      clearInterval(timer); // Clear the timer
+      songProgressWidth.value = 0; // Reset progress bar
     });
   }
+  setInterval(() => {
+    if (isPlaying.value) {
+      elapsedTime.value = Math.min(elapsedTime.value + 1, songDuration.value);
+      songProgressWidth.value =
+        songDuration.value > 0
+          ? (elapsedTime.value / songDuration.value) * 100
+          : 0; // Avoid division by zero
+    }
+  }, 1000); // Update every second
 });
 </script>
 

@@ -1,6 +1,10 @@
 <template>
   <UContainer>
-    <h1 class="py-8">Dobro došli na <strong>Osnovni(Basic)</strong> Radio.</h1>
+    <div class="text-center py-8">
+      Dobro došli na <br /><span class="font-bold text-2xl">Osnovni(Basic)</span
+      ><br />
+      Radio.
+    </div>
     <UTabs :items="items" class="w-full">
       <template #narodna_muzika="{ item }">
         <UCard>
@@ -79,7 +83,11 @@ const initializeSse = (stationName: string) => {
   sse.value.onmessage = (e) => {
     const jsonData = JSON.parse(e.data);
     if ("pub" in jsonData) {
-      console.log(jsonData.pub.data.np.now_playing);
+      console.log(
+        new Date().toLocaleTimeString(),
+        "new data:",
+        jsonData.pub.data.np.now_playing
+      );
       nowPlaying.value = jsonData.pub.data.np.now_playing; // Update nowPlaying
     }
   };
