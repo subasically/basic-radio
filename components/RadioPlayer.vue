@@ -11,14 +11,7 @@
       </div>
       <div class="flex flex-row items-center my-2">
         <div class="mr-1">{{ formatTime(elapsedTime) }}</div>
-        <div
-          class="flex-1 flex-shrink-0 basis-auto bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 overflow-hidden"
-        >
-          <div
-            class="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-in-out"
-            :style="{ width: songProgressWidth + '%' }"
-          ></div>
-        </div>
+        <UProgress size="md" :indicator="false" :value="songProgressWidth" />
         <div class="ml-1">{{ formatTime(songDuration) }}</div>
       </div>
       <h2 class="text-lg font-bold">{{ nowPlaying.song.title }}</h2>
@@ -30,17 +23,17 @@
           v-if="!isPlaying"
           :ui="{ rounded: 'rounded-full' }"
           size="xl"
-          icon="i-heroicons-play"
+          icon="i-heroicons-play-circle-solid"
           @click="play"
-          >PLAY</UButton
+          >Play</UButton
         >
         <UButton
           v-else
           :ui="{ rounded: 'rounded-full' }"
           size="xl"
-          icon="i-heroicons-stop"
+          icon="i-heroicons-stop-circle-solid"
           @click="stop"
-          >STOP</UButton
+          >Stop</UButton
         >
       </div>
 

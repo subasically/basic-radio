@@ -1,26 +1,36 @@
 <template>
-  <UContainer>
+  <UContainer class="flex flex-col items-center">
     <div class="text-center pt-6 pb-4">
-      Dobro došli na <br /><span class="font-bold text-2xl">Osnovni(Basic)</span
+      Dobro došli na <br /><span class="font-bold text-3xl">Osnovni(Basic)</span
       ><br />
-      Radio.
+      Radio
     </div>
-    <UTabs :items="items" class="w-full">
+    <UTabs :items="items" class="max-w-md">
       <template #narodna_muzika="{ item }">
         <UCard>
-          <RadioPlayer :stationUrl="item.stationUrl" :nowPlaying="nowPlaying" />
+          <RadioPlayer
+            v-if="item.stationUrl"
+            :stationUrl="item.stationUrl"
+            :nowPlaying="nowPlaying"
+          />
+          <p v-else>Currently offline.</p>
         </UCard>
       </template>
 
-      <template #pop_muzika="{ item }">
+      <template #mix_muzika="{ item }">
         <UCard>
-          <p>To be implemented when Pop radio is live.</p>
+          <RadioPlayer
+            v-if="item.stationUrl"
+            :stationUrl="item.stationUrl"
+            :nowPlaying="nowPlaying"
+          />
+          <p v-else>Currently offline.</p>
         </UCard>
       </template>
 
       <template #trending_muzika="{ item }">
         <UCard>
-          <p>To be implemented when Trending radio is live.</p>
+          <p>Currently offline.</p>
         </UCard>
       </template>
     </UTabs>
@@ -44,8 +54,8 @@ const items: StationItem[] = [
       "https://basic-radio.subasically.me/listen/narodna_muzika/radio",
   },
   {
-    slot: "pop_muzika",
-    label: "Pop Muzika",
+    slot: "mix_muzika",
+    label: "Mix Muzika",
     stationUrl: "",
   },
   {
