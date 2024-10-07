@@ -71,6 +71,24 @@ const songDuration = ref(0);
 const elapsedTime = ref(0);
 const songProgressWidth = ref(0); // Holds the percentage width for the progress bar
 
+// Setting media session metadata (iPhone lock screen)
+const updateMediaSession = () => {
+  if ("mediaSession" in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: props.nowPlaying.song.title,
+      artist: props.nowPlaying.song.artist,
+      album: props.nowPlaying.song.album,
+      artwork: [
+        {
+          src: props.nowPlaying.song.art, // URL to the album art
+          sizes: "512x512", // Size of the artwork image
+          type: "image/jpeg", // MIME type (can be image/jpeg as well)
+        },
+      ],
+    });
+  }
+};
+
 // Helper function to format time in minutes:seconds
 const formatTime = (seconds) => {
   const minutes = Math.floor(seconds / 60);
@@ -110,6 +128,7 @@ watch(
   () => props.nowPlaying,
   () => {
     updateProgress(); // Call the update function whenever nowPlaying changes
+    updateMediaSession(); // Update media session metadata
   },
   { deep: true } // Watch deeply for nested properties
 );
