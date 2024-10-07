@@ -1,75 +1,40 @@
-# Nuxt 3 Minimal Starter
+# Basic Radio
 
-Look at the [Nuxt 3 documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Welcome to Basic Radio, a personal radio station built for me and my friends. This project is not intended for public development or contributions.
 
 ## Setup
 
-Make sure to install the dependencies:
+1. **AzuraCast**
+   This handles the radio stations in the backend.
 
-```bash
-# npm
+2. **Nuxt 3 Web app**
+   This has the radio player and lists available radio stations.
+
+## Setup
+
+1. **Install Dependencies:**
+
+```sh
 npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
 ```
 
-## Development Server
+2. **Run the Development Server:**
 
-Start the development server on `http://localhost:3000`:
-
-```bash
-# npm
+```sh
 npm run dev
-
-# pnpm
-pnpm run dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
+3. **Build for Production:**
 
-Build the application for production:
-
-```bash
-# npm
+```sh
 npm run build
-
-# pnpm
-pnpm run build
-
-# yarn
-yarn build
-
-# bun
-bun run build
 ```
 
-Locally preview production build:
+## Usage
 
-```bash
-# npm
-npm run preview
+- The application automatically connects to the first available radio station on mount.
+- You can switch between different radio stations using the tabs.
 
-# pnpm
-pnpm run preview
+## License
 
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+This project is for personal use only and is not intended for public distribution or contributions.
