@@ -30,7 +30,12 @@
 
       <template #trending_muzika="{ item }">
         <UCard>
-          <p>Currently offline.</p>
+          <RadioPlayer
+            v-if="item.stationUrl"
+            :stationUrl="item.stationUrl"
+            :nowPlaying="nowPlaying"
+          />
+          <p v-else>Currently offline.</p>
         </UCard>
       </template>
     </UTabs>
@@ -90,7 +95,7 @@ const initializeSse = (stationName: string) => {
 
   sse.value = new EventSource(sseUri);
 
-  sse.value.onmessage = (e) => {
+  sse.value.onmessage = (e: { data: string }) => {
     const jsonData = JSON.parse(e.data);
     if ("pub" in jsonData) {
       console.log(
