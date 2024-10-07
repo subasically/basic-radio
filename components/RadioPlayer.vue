@@ -1,109 +1,151 @@
 <template>
   <div>
-    <h2>Now Playing</h2>
-    <div v-if="data">
+    <div v-if="nowPlaying.song">
       <img
-        v-if="data.now_playing.song.art"
-        :src="data.now_playing.song.art"
+        v-if="nowPlaying.song.art"
+        :src="nowPlaying.song.art"
         alt="Album Art"
-        width="100"
-        height="100"
       />
-      <p><strong>Title:</strong> {{ data.now_playing.song.title }}</p>
-      <p><strong>Artist:</strong> {{ data.now_playing.song.artist }}</p>
-      <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mb-6 mt-2">
-        <div class="bg-blue-600 h-2.5 rounded-full" :style="{ width: songProgressRemaining + '%' }"></div>
+      <h2 class="text-lg font-bold">{{ nowPlaying.song.title }}</h2>
+      <h3>{{ nowPlaying.song.artist }}</h3>
+      <h4 v-if="nowPlaying.song.album">{{ nowPlaying.song.album }}</h4>
+      <div class="flex flex-row items-center my-2">
+        <div class="mr-1">{{ formatTime(elapsedTime) }}</div>
+        <div
+          class="flex-1 flex-shrink-0 basis-auto bg-gray-200 rounded-full h-2.5 dark:bg-gray-700"
+        >
+          <div
+            class="bg-blue-600 h-2.5 rounded-full"
+            :style="{ width: songProgressWidth + '%' }"
+          ></div>
+        </div>
+        <div class="ml-1">{{ formatTime(songDuration) }}</div>
       </div>
+      <!-- <p>Elapsed Time: {{ formatTime(elapsedTime) }}</p> -->
+      <!-- <p>Remaining Time: {{ formatTime(remainingTime) }}</p> -->
+      <!-- <p>Total Time: {{ formatTime(songDuration) }}</p> -->
+
+      <div class="flex space-x-4">
+        <UButton v-if="!isPlaying" @click="play">PLAY</UButton>
+        <UButton v-else @click="stop">STOP</UButton>
+      </div>
+
+      <audio
+        ref="audio"
+        :src="stationUrl"
+        :title="nowPlaying.song.artist + ' - ' + nowPlaying.song.title"
+      ></audio>
     </div>
     <div v-else class="py-4">
       <p>No song is currently playing.</p>
     </div>
-    <div class="flex space-x-4">
-      <UButton @click="play">PLAY</UButton>
-      <UButton @click="stop">STOP</UButton>
-    </div>
   </div>
 </template>
 
-<script lang="ts" setup>
-import { Howl } from "howler";
+<script setup>
+// Props passed from App.vue
+const props = defineProps({
+  stationUrl: {
+    type: String,
+    required: true,
+  },
+  nowPlaying: {
+    type: Object,
+    required: true,
+  },
+});
 
-// Define props
-const props = defineProps<{
-  stationUrl: string;
-  stationName: string;
-}>();
+// Audio element reference
+const audio = ref(null);
+const isPlaying = ref(false);
+const songDuration = ref(0);
+const elapsedTime = ref(0);
+const remainingTime = ref(0);
+const songProgressWidth = ref(0); // This holds the percentage width for the progress bar
 
-// Create a reactive reference for the nowPlaying data
-const data = ref<any>();
-
-// Initialize Server-Sent Events
-let sse: EventSource | null = null;
-
-const initializeSse = (stationName: string) => {
-  const sseBaseUri =
-    "https://basic-radio.subasically.me/api/live/nowplaying/sse";
-  const sseUriParams = new URLSearchParams({
-    cf_connect: JSON.stringify({
-      subs: {
-        [`station:${stationName}`]: {},
-      },
-    }),
-  });
-  const sseUri = `${sseBaseUri}?${sseUriParams.toString()}`;
-
-  sse = new EventSource(sseUri);
-
-  sse.onmessage = (e) => {
-    const jsonData = JSON.parse(e.data);
-    if ("pub" in jsonData) {
-      data.value = jsonData.pub.data.np;
-    }
-  };
-
-  sse.onerror = (error) => {
-    console.error("SSE error:", error);
-  };
+// Helper function to format time in minutes:seconds
+const formatTime = (seconds) => {
+  const minutes = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${minutes}:${secs < 10 ? "0" : ""}${secs}`;
 };
 
-// Clean up the SSE connection when the component is unmounted
-onBeforeUnmount(() => {
-  if (sse) {
-    sse.close();
-  }
-});
-
-// Initialize the SSE connection for the selected station
-onMounted(() => {
-  initializeSse(props.stationName); // Start listening for updates
-});
-
-// Howler sound configuration
-const sound = new Howl({
-  src: [props.stationUrl],
-  html5: true,
-  volume: 1,
-  // onend: function () {
-  //   console.log("Finished!");
-  // },
-});
-
-// Methods to play and stop the sound
+// Play audio method
 const play = () => {
-  // sound.stop();
-  sound.play();
-};
-
-const stop = () => {
-  sound.stop();
-};
-
-const songProgressRemaining = computed(() => {
-  if (data.value) {
-    return ((data.value.now_playing.duration - data.value.now_playing.remaining) / data.value.now_playing.duration) * 100;
+  if (audio.value) {
+    audio.value.play();
+    isPlaying.value = true;
+    startTimer(); // Start the timer when playing
   }
-  return 0;
+};
+
+// Stop audio method
+const stop = () => {
+  if (audio.value) {
+    audio.value.pause(); // Use pause instead of stop
+    isPlaying.value = false;
+    clearInterval(timer); // Clear the timer
+  }
+};
+
+// Timer to update elapsed time and progress bar
+let timer = null;
+const startTimer = () => {
+  if (!timer) {
+    timer = setInterval(() => {
+      if (audio.value && isPlaying.value) {
+        elapsedTime.value = Math.min(
+          elapsedTime.value + 1,
+          props.nowPlaying.duration
+        );
+        remainingTime.value = Math.max(
+          props.nowPlaying.duration - elapsedTime.value,
+          0
+        );
+        songProgressWidth.value =
+          (elapsedTime.value / props.nowPlaying.duration) * 100;
+      }
+    }, 1000); // Update every second
+  }
+};
+
+// Update progress based on props
+const updateProgress = () => {
+  if (props.nowPlaying.duration) {
+    // Update only if duration is defined
+    elapsedTime.value = props.nowPlaying.elapsed;
+    remainingTime.value = props.nowPlaying.remaining;
+    songDuration.value = props.nowPlaying.duration;
+    songProgressWidth.value =
+      (elapsedTime.value / props.nowPlaying.duration) * 100;
+  }
+};
+
+// Watch for updates in the nowPlaying object
+watch(
+  () => props.nowPlaying,
+  () => {
+    updateProgress(); // Call the update function whenever nowPlaying changes
+  },
+  { deep: true } // Watch deeply for nested properties
+);
+
+// Reset progress bar and reinitialize audio when component is mounted
+onMounted(() => {
+  if (audio.value) {
+    audio.value.addEventListener("ended", () => {
+      isPlaying.value = false;
+      elapsedTime.value = 0; // Reset elapsed time when song ends
+      remainingTime.value = props.nowPlaying.duration; // Reset remaining time
+      songProgressWidth.value = 100; // Reset progress bar
+      clearInterval(timer); // Clear the timer
+    });
+  }
 });
 </script>
 
-<style></style>
+<style scoped>
+audio {
+  display: none;
+}
+</style>
