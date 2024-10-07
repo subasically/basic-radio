@@ -43,6 +43,8 @@
 </template>
 
 <script setup lang="ts">
+const isDev = import.meta.env.DEV;
+
 // Define the structure of each item in the items array
 interface StationItem {
   slot: string;
@@ -79,7 +81,9 @@ let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
 // Initialize Server-Sent Events
 const initializeSse = (stationName: string) => {
-  console.log("Connecting to", stationName);
+  if (isDev) {
+    console.log("Connecting to", stationName);
+  }
 
   const sseBaseUri =
     "https://basic-radio.subasically.me/api/live/nowplaying/sse";
@@ -98,11 +102,13 @@ const initializeSse = (stationName: string) => {
   sse.value.onmessage = (e: { data: string }) => {
     const jsonData = JSON.parse(e.data);
     if ("pub" in jsonData) {
-      console.log(
-        new Date().toLocaleTimeString(),
-        "new data:",
-        jsonData.pub.data.np.now_playing
-      );
+      if (isDev) {
+        console.log(
+          new Date().toLocaleTimeString(),
+          "new data:",
+          jsonData.pub.data.np.now_playing
+        );
+      }
       nowPlaying.value = jsonData.pub.data.np.now_playing; // Update nowPlaying
     }
   };
@@ -136,7 +142,9 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (sse.value) {
     sse.value.close();
-    console.warn("SSE connection closed.");
+    if (isDev) {
+      console.warn("SSE connection closed.");
+    }
   }
   if (reconnectTimeout) {
     clearTimeout(reconnectTimeout);
