@@ -1,12 +1,14 @@
 <template>
-  <div class="radio-player max-w-md mx-auto">
-    <div v-if="nowPlaying.song">
-      <img
-        v-if="nowPlaying.song.art"
-        :src="isDev ? 'https://placehold.co/1000' : nowPlaying.song.art"
-        alt="Album Art"
-        class="object-cover rounded-lg mb-3"
-      />
+  <div class="radio-player max-w-sm mx-auto">
+    <div class="flex flex-col text-center" v-if="nowPlaying.song">
+      <div class="flex justify-center">
+        <img
+          v-if="nowPlaying.song.art"
+          :src="isDev ? 'https://placehold.co/1000' : nowPlaying.song.art"
+          alt="Album Art"
+          class="max-h-[300px] max-w-[300px] object-cover rounded-lg mb-3"
+        />
+      </div>
       <div class="flex flex-row items-center my-2">
         <div class="mr-1">{{ formatTime(elapsedTime) }}</div>
         <div

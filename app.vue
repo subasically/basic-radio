@@ -1,6 +1,6 @@
 <template>
   <UContainer>
-    <div class="text-center py-8">
+    <div class="text-center pt-6 pb-4">
       Dobro došli na <br /><span class="font-bold text-2xl">Osnovni(Basic)</span
       ><br />
       Radio.
