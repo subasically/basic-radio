@@ -11,7 +11,7 @@
           <RadioPlayer
             v-if="item.stationUrl"
             :stationUrl="item.stationUrl"
-            :nowPlaying="nowPlaying"
+            :nowPlaying="nowPlaying[item.slot]"
           />
           <p v-else>Currently offline.</p>
         </UCard>
@@ -22,7 +22,7 @@
           <RadioPlayer
             v-if="item.stationUrl"
             :stationUrl="item.stationUrl"
-            :nowPlaying="nowPlaying"
+            :nowPlaying="nowPlaying[item.slot]"
           />
           <p v-else>Currently offline.</p>
         </UCard>
@@ -33,7 +33,7 @@
           <RadioPlayer
             v-if="item.stationUrl"
             :stationUrl="item.stationUrl"
-            :nowPlaying="nowPlaying"
+            :nowPlaying="nowPlaying[item.slot]"
           />
           <p v-else>Currently offline.</p>
         </UCard>
@@ -43,8 +43,6 @@
 </template>
 
 <script setup lang="ts">
-const isDev = import.meta.env.DEV;
-
 // Define the structure of each item in the items array
 interface StationItem {
   slot: string;
@@ -57,13 +55,12 @@ const items: StationItem[] = [
   {
     slot: "narodna_muzika",
     label: "Narodna Muzika",
-    stationUrl:
-      "https://basic-radio.subasically.me/listen/narodna_muzika/radio",
+    stationUrl: `https://basic-radio.subasically.me/listen/narodna_muzika/radio`,
   },
   {
     slot: "mix_muzika",
     label: "Mix Muzika",
-    stationUrl: "",
+    stationUrl: "https://basic-radio.subasically.me/listen/mix_muzika/radio",
   },
   {
     slot: "trending_muzika",
@@ -72,19 +69,40 @@ const items: StationItem[] = [
   },
 ];
 
-// State for nowPlaying and SSE
-const nowPlaying = ref({
-  song: null,
+// State for nowPlaying for each station
+const nowPlaying = ref<Record<string, any>>({
+  narodna_muzika: { song: null },
+  mix_muzika: { song: null },
+  trending_muzika: { song: null },
 });
-const sse = ref<EventSource | null>(null);
-let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
-// Initialize Server-Sent Events
-const initializeSse = (stationName: string) => {
-  if (isDev) {
-    console.log("Connecting to", stationName);
+const sse = ref<Record<string, EventSource | null>>({
+  narodna_muzika: null,
+  mix_muzika: null,
+  trending_muzika: null,
+});
+
+let reconnectTimeouts: Record<string, ReturnType<typeof setTimeout> | null> = {
+  narodna_muzika: null,
+  mix_muzika: null,
+  trending_muzika: null,
+};
+
+// Fetch initial data for each station
+const fetchInitialData = async (stationName: string) => {
+  try {
+    const response = await fetch(
+      `https://basic-radio.subasically.me/api/nowplaying/${stationName}`
+    );
+    const data = await response.json();
+    nowPlaying.value[stationName] = data.now_playing;
+  } catch (error) {
+    console.error(`Error fetching initial data for ${stationName}:`, error);
   }
+};
 
+// Initialize Server-Sent Events for each station
+const initializeSse = (stationName: string) => {
   const sseBaseUri =
     "https://basic-radio.subasically.me/api/live/nowplaying/sse";
   const sseUriParams = new URLSearchParams({
@@ -96,58 +114,51 @@ const initializeSse = (stationName: string) => {
   });
 
   const sseUri = `${sseBaseUri}?${sseUriParams.toString()}`;
+  sse.value[stationName] = new EventSource(sseUri);
 
-  sse.value = new EventSource(sseUri);
-
-  sse.value.onmessage = (e: { data: string }) => {
+  sse.value[stationName]!.onmessage = (e: { data: string }) => {
     const jsonData = JSON.parse(e.data);
     if ("pub" in jsonData) {
-      if (isDev) {
-        console.log(
-          new Date().toLocaleTimeString(),
-          "new data:",
-          jsonData.pub.data.np.now_playing
-        );
-      }
-      nowPlaying.value = jsonData.pub.data.np.now_playing; // Update nowPlaying
+      nowPlaying.value[stationName] = jsonData.pub.data.np.now_playing;
     }
   };
 
-  sse.value.onerror = () => {
-    if (reconnectTimeout === null) {
-      reconnectTimeout = setTimeout(() => {
-        initializeSse(stationName); // Reconnect after 5 seconds
-        reconnectTimeout = null;
+  sse.value[stationName]!.onerror = () => {
+    if (reconnectTimeouts[stationName] === null) {
+      reconnectTimeouts[stationName] = setTimeout(() => {
+        initializeSse(stationName);
+        reconnectTimeouts[stationName] = null;
       }, 5000);
     }
   };
 };
 
-// Automatically connect to the first available station on mount
-const connectToAvailableStation = () => {
+// Automatically connect to the stations that have a URL
+const connectToAvailableStations = () => {
   for (const item of items) {
     if (item.stationUrl) {
-      initializeSse(item.slot); // Use the slot as the station name
-      break; // Connect to the first available station
+      fetchInitialData(item.slot); // Fetch initial nowPlaying data for each station
+      initializeSse(item.slot); // Set up SSE for each station
     }
   }
 };
 
 // Call the function when the component is mounted
-onMounted(() => {
-  connectToAvailableStation();
+onMounted(async () => {
+  connectToAvailableStations(); // Connect to all available stations
 });
 
 // Cleanup on unmount
 onBeforeUnmount(() => {
-  if (sse.value) {
-    sse.value.close();
-    if (isDev) {
-      console.warn("SSE connection closed.");
+  for (const station in sse.value) {
+    if (sse.value[station]) {
+      sse.value[station]!.close();
     }
   }
-  if (reconnectTimeout) {
-    clearTimeout(reconnectTimeout);
+  for (const station in reconnectTimeouts) {
+    if (reconnectTimeouts[station]) {
+      clearTimeout(reconnectTimeouts[station]!);
+    }
   }
 });
 </script>

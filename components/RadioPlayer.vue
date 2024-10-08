@@ -17,37 +17,36 @@
       <h2 class="text-lg font-bold">{{ nowPlaying.song.title }}</h2>
       <h3>{{ nowPlaying.song.artist }}</h3>
       <h4 v-if="nowPlaying.song.album">{{ nowPlaying.song.album }}</h4>
-
-      <div class="flex justify-center mt-4">
-        <UButton
-          v-if="!isPlaying"
-          :ui="{ rounded: 'rounded-full' }"
-          size="xl"
-          icon="i-heroicons-play-circle-solid"
-          @click="play"
-          >Play</UButton
-        >
-        <UButton
-          v-else
-          :ui="{ rounded: 'rounded-full' }"
-          size="xl"
-          icon="i-heroicons-stop-circle-solid"
-          @click="stop"
-          >Stop</UButton
-        >
-      </div>
-
-      <audio
-        ref="audio"
-        :src="stationUrl"
-        :title="nowPlaying.song.artist + ' - ' + nowPlaying.song.title"
-        @play="isPlaying = true"
-        @pause="isPlaying = false"
-      ></audio>
     </div>
     <div v-else class="py-4 text-center">
       <p>Loading...</p>
     </div>
+
+    <div class="flex justify-center mt-4">
+      <UButton
+        v-if="!isPlaying"
+        :ui="{ rounded: 'rounded-full' }"
+        size="xl"
+        icon="i-heroicons-play-circle-solid"
+        @click="play"
+        >Play</UButton
+      >
+      <UButton
+        v-else
+        :ui="{ rounded: 'rounded-full' }"
+        size="xl"
+        icon="i-heroicons-stop-circle-solid"
+        @click="stop"
+        >Stop</UButton
+      >
+    </div>
+
+    <audio
+      ref="audio"
+      :src="stationUrl"
+      @play="isPlaying = true"
+      @pause="isPlaying = false"
+    ></audio>
   </div>
 </template>
 
