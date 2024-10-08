@@ -11,5 +11,10 @@ export default defineNuxtConfig({
   },
   compatibilityDate: '2024-04-03',
   devtools: { enabled: true },
-  modules: ['@nuxt/ui']
+  modules: ['@nuxt/ui'],
+  runtimeConfig: {
+    public: {
+      AZURACAST_API_KEY: process.env.AZURACAST_API_KEY || 'api_key_missing'
+    }
+  }
 })

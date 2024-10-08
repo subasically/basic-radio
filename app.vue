@@ -1,40 +1,30 @@
 <template>
   <UContainer class="flex flex-col items-center">
     <div class="text-center pt-6 pb-4">
-      Dobro došli na <br /><span class="font-bold text-3xl">Osnovni(Basic)</span
-      ><br />
+      Dobro došli na <br /><span class="font-bold text-3xl">Osnovni(Basic)</span><br />
       Radio
     </div>
     <UTabs :items="items" class="max-w-md">
       <template #narodna_muzika="{ item }">
         <UCard>
-          <RadioPlayer
-            v-if="item.stationUrl"
-            :stationUrl="item.stationUrl"
-            :nowPlaying="nowPlaying[item.slot]"
-          />
+          <RadioPlayer v-if="item.stationUrl" :stationUrl="item.stationUrl" :nowPlaying="nowPlaying[item.slot]"
+            :songHistory="songHistory[item.slot]" />
           <p v-else>Currently offline.</p>
         </UCard>
       </template>
 
       <template #mix_muzika="{ item }">
         <UCard>
-          <RadioPlayer
-            v-if="item.stationUrl"
-            :stationUrl="item.stationUrl"
-            :nowPlaying="nowPlaying[item.slot]"
-          />
+          <RadioPlayer v-if="item.stationUrl" :stationUrl="item.stationUrl" :nowPlaying="nowPlaying[item.slot]"
+            :songHistory="songHistory[item.slot]" />
           <p v-else>Currently offline.</p>
         </UCard>
       </template>
 
       <template #trending_muzika="{ item }">
         <UCard>
-          <RadioPlayer
-            v-if="item.stationUrl"
-            :stationUrl="item.stationUrl"
-            :nowPlaying="nowPlaying[item.slot]"
-          />
+          <RadioPlayer v-if="item.stationUrl" :stationUrl="item.stationUrl" :nowPlaying="nowPlaying[item.slot]"
+            :songHistory="songHistory[item.slot]" />
           <p v-else>Currently offline.</p>
         </UCard>
       </template>
@@ -43,37 +33,62 @@
 </template>
 
 <script setup lang="ts">
-// Define the structure of each item in the items array
+interface Song {
+  id: string;
+  art: string;
+  text: string;
+  artist: string;
+  title: string;
+  album: string;
+}
+
+interface NowPlaying {
+  sh_id: number;
+  played_at: number;
+  duration: number;
+  elapsed?: number;
+  song: Song;
+}
+
+interface StationNowPlaying {
+  station: Record<string, any>;
+  now_playing: NowPlaying;
+}
+
 interface StationItem {
   slot: string;
   label: string;
   stationUrl: string;
 }
 
-// Define the items array with StationItem type
 const items: StationItem[] = [
   {
-    slot: "narodna_muzika",
-    label: "Narodna Muzika",
-    stationUrl: `https://basic-radio.subasically.me/listen/narodna_muzika/radio`,
+    slot: 'narodna_muzika',
+    label: 'Narodna Muzika',
+    stationUrl: 'https://basic-radio.subasically.me/listen/narodna_muzika/radio',
   },
   {
-    slot: "mix_muzika",
-    label: "Mix Muzika",
-    stationUrl: "https://basic-radio.subasically.me/listen/mix_muzika/radio",
+    slot: 'mix_muzika',
+    label: 'Mix Muzika',
+    stationUrl: 'https://basic-radio.subasically.me/listen/mix_muzika/radio',
   },
   {
-    slot: "trending_muzika",
-    label: "Trending Muzika",
-    stationUrl: "",
+    slot: 'trending_muzika',
+    label: 'Trending Muzika',
+    stationUrl: '',
   },
 ];
 
-// State for nowPlaying for each station
-const nowPlaying = ref<Record<string, any>>({
-  narodna_muzika: { song: null },
-  mix_muzika: { song: null },
-  trending_muzika: { song: null },
+const nowPlaying = ref<Record<string, NowPlaying | null>>({
+  narodna_muzika: null,
+  mix_muzika: null,
+  trending_muzika: null,
+});
+
+const songHistory = ref<Record<string, any[]>>({
+  narodna_muzika: [],
+  mix_muzika: [],
+  trending_muzika: [],
 });
 
 const sse = ref<Record<string, EventSource | null>>({
@@ -82,48 +97,69 @@ const sse = ref<Record<string, EventSource | null>>({
   trending_muzika: null,
 });
 
-let reconnectTimeouts: Record<string, ReturnType<typeof setTimeout> | null> = {
+const reconnectTimeouts: Record<string, ReturnType<typeof setTimeout> | null> = {
   narodna_muzika: null,
   mix_muzika: null,
   trending_muzika: null,
 };
 
-// Fetch initial data for each station
-const fetchInitialData = async (stationName: string) => {
-  try {
-    const response = await fetch(
-      `https://basic-radio.subasically.me/api/nowplaying/${stationName}`
-    );
-    const data = await response.json();
-    nowPlaying.value[stationName] = data.now_playing;
-  } catch (error) {
-    console.error(`Error fetching initial data for ${stationName}:`, error);
+const handleSseData = (ssePayload: any) => {
+  const jsonData = ssePayload.data;
+
+  for (const station in nowPlaying.value) {
+    if (jsonData.np.station.shortcode === station) {
+      const currentlyPlaying = jsonData.np.now_playing;
+      const currentTime = Math.floor(Date.now() / 1000);
+
+      nowPlaying.value[station] = {
+        ...currentlyPlaying,
+        elapsed: currentTime - currentlyPlaying.played_at,
+      };
+      break;
+    }
   }
 };
 
-// Initialize Server-Sent Events for each station
 const initializeSse = (stationName: string) => {
-  const sseBaseUri =
-    "https://basic-radio.subasically.me/api/live/nowplaying/sse";
+  const sseBaseUri = "https://basic-radio.subasically.me/api/live/nowplaying/sse";
   const sseUriParams = new URLSearchParams({
     cf_connect: JSON.stringify({
       subs: {
-        [`station:${stationName}`]: {},
+        [`station:${stationName}`]: { recover: true },
       },
     }),
   });
 
   const sseUri = `${sseBaseUri}?${sseUriParams.toString()}`;
-  sse.value[stationName] = new EventSource(sseUri);
+  const sseInstance = new EventSource(sseUri);
+  sse.value[stationName] = sseInstance;
 
-  sse.value[stationName]!.onmessage = (e: { data: string }) => {
+  sseInstance.onmessage = (e: MessageEvent) => {
     const jsonData = JSON.parse(e.data);
-    if ("pub" in jsonData) {
-      nowPlaying.value[stationName] = jsonData.pub.data.np.now_playing;
+
+    if ('connect' in jsonData) {
+      const connectData = jsonData.connect;
+
+      if ('data' in connectData) {
+        connectData.data.forEach((initialRow: any) => handleSseData(initialRow));
+      } else {
+        if ('time' in connectData) {
+          const connectTime = Math.floor(connectData.time / 1000);
+        }
+
+        for (const subName in connectData.subs) {
+          const sub = connectData.subs[subName];
+          if ('publications' in sub && sub.publications.length > 0) {
+            sub.publications.forEach((initialRow: any) => handleSseData(initialRow));
+          }
+        }
+      }
+    } else if ('pub' in jsonData) {
+      handleSseData(jsonData.pub);
     }
   };
 
-  sse.value[stationName]!.onerror = () => {
+  sseInstance.onerror = () => {
     if (reconnectTimeouts[stationName] === null) {
       reconnectTimeouts[stationName] = setTimeout(() => {
         initializeSse(stationName);
@@ -133,22 +169,35 @@ const initializeSse = (stationName: string) => {
   };
 };
 
-// Automatically connect to the stations that have a URL
-const connectToAvailableStations = () => {
+const fetchSongHistory = async (stationId: string) => {
+  const config = useRuntimeConfig();
+
+  console.log('api key:', config.public.AZURACAST_API_KEY);
+
+  try {
+    const data = await $fetch(`https://basic-radio.subasically.me/api/station/${stationId}/history`, {
+      headers: {
+        Authorization: `Bearer ${config.public.AZURACAST_API_KEY}`
+      }
+    });
+
+    songHistory.value[stationId] = Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error('Failed to fetch song history:', error);
+  }
+}
+
+onMounted(async () => {
+  const apiKey = process.env.AZURACAST_API_KEY;
+
   for (const item of items) {
     if (item.stationUrl) {
-      fetchInitialData(item.slot); // Fetch initial nowPlaying data for each station
-      initializeSse(item.slot); // Set up SSE for each station
+      initializeSse(item.slot);
+      await fetchSongHistory(item.slot);
     }
   }
-};
-
-// Call the function when the component is mounted
-onMounted(async () => {
-  connectToAvailableStations(); // Connect to all available stations
 });
 
-// Cleanup on unmount
 onBeforeUnmount(() => {
   for (const station in sse.value) {
     if (sse.value[station]) {
