@@ -1,9 +1,19 @@
 <template>
   <div class="radio-player max-w-sm mx-auto">
-    <div class="flex flex-col text-center" v-if="nowPlaying?.song">
+    <div
+      class="flex flex-col text-center"
+      v-if="
+        nowPlaying?.song &&
+        nowPlaying?.song?.title !== 'We\'ll be back later...'
+      "
+    >
       <div class="flex justify-center">
-        <img v-if="nowPlaying.song.art" :src="isDev ? 'https://placehold.co/1000' : nowPlaying.song.art" alt="Album Art"
-          class="max-h-[300px] max-w-[300px] object-cover rounded-lg mb-3" />
+        <img
+          v-if="nowPlaying.song.art"
+          :src="isDev ? 'https://placehold.co/1000' : nowPlaying.song.art"
+          alt="Album Art"
+          class="max-h-[300px] max-w-[300px] object-cover rounded-lg mb-3"
+        />
       </div>
       <div class="flex flex-row items-center my-2">
         <div class="mr-1">{{ formatTime(elapsedTime) }}</div>
@@ -15,60 +25,77 @@
       <h4 v-if="nowPlaying.song.album">{{ nowPlaying.song.album }}</h4>
     </div>
     <div v-else class="py-4 text-center">
-      <p>Loading...</p>
+      <p>We'll be back later...</p>
     </div>
 
-    <div v-if="songHistory.length > 0" class="flex flex-col text-center">
-      <h3 class="text-lg font-bold">Recently Played</h3>
-      <ul class="text-sm">
-        <li v-for="song in songHistory" :key="song.sh_id">
-          {{ song.song.title }} - {{ song.song.artist }}
-        </li>
-      </ul>
-    </div>
-
-    <div class="flex justify-center mt-4">
-      <UButton v-if="!isPlaying" :ui="{ rounded: 'rounded-full' }" size="xl" icon="i-heroicons-play-circle-solid"
-        @click="play">
+    <div
+      v-if="nowPlaying?.song?.title !== 'We\'ll be back later...'"
+      class="flex justify-center my-4"
+    >
+      <UButton
+        v-if="!isPlaying"
+        :ui="{ rounded: 'rounded-full' }"
+        size="xl"
+        icon="i-heroicons-play-circle-solid"
+        @click="play"
+      >
         Play
       </UButton>
-      <UButton v-else :ui="{ rounded: 'rounded-full' }" size="xl" icon="i-heroicons-stop-circle-solid" @click="stop">
+      <UButton
+        v-else
+        :ui="{ rounded: 'rounded-full' }"
+        size="xl"
+        icon="i-heroicons-stop-circle-solid"
+        @click="stop"
+      >
         Stop
       </UButton>
     </div>
 
-    <audio ref="audio" :src="stationUrl" @play="isPlaying = true" @pause="isPlaying = false"></audio>
+    <UAccordion :items="radioQueueAccordion">
+      <template #song-history>
+        <div class="text-gray-900 dark:text-white text-center">
+          <ul v-if="songHistory" class="text-sm">
+            <li v-for="item in songHistory" :key="item.song.id">
+              <div>{{ formatDate(item.played_at) }}</div>
+              <strong>{{ item.song.artist }}</strong> - {{ item.song.title }}
+            </li>
+          </ul>
+        </div>
+      </template>
+
+      <template #playing-next>
+        <div class="text-gray-900 dark:text-white text-center">
+          <ul v-if="playingNext" class="text-sm">
+            <li>
+              <div>{{ formatDate(playingNext.cued_at) }}</div>
+              {{ playingNext.song.artist }} - {{ playingNext.song.title }}
+            </li>
+          </ul>
+        </div>
+      </template>
+    </UAccordion>
+
+    <audio
+      ref="audio"
+      :src="stationUrl"
+      @play="isPlaying = true"
+      @pause="isPlaying = false"
+    ></audio>
   </div>
 </template>
 
 <script setup lang="ts">
-interface Song {
-  id: string;
-  art: string;
-  text: string;
-  artist: string;
-  title: string;
-  album: string;
-}
+import type { NowPlaying, PlayingNext, SongHistory } from "~/types";
 
-interface NowPlaying {
-  sh_id: number;
-  played_at: number;
-  duration: number;
-  elapsed?: number;
-  song: Song;
-}
-
-// Make sure to import necessary Vue utilities
-import { ref, computed, watch, onMounted } from 'vue';
-
-// Update your script setup
-const isDev = process.env.NODE_ENV === "development";
+const config = useRuntimeConfig();
+const isDev = config.public.IS_DEV;
 
 const props = defineProps<{
   stationUrl: string;
   nowPlaying: NowPlaying | null;
-  songHistory: Array<Record<string, any>>;
+  playingNext: PlayingNext | null;
+  songHistory: SongHistory[] | null;
 }>();
 
 const audio = ref<HTMLAudioElement | null>(null);
@@ -76,6 +103,20 @@ const isPlaying = ref(false);
 const elapsedTime = ref(0);
 const songProgressWidth = ref(0);
 const songDuration = computed(() => props.nowPlaying?.duration || 0);
+const radioQueueAccordion = [
+  {
+    label: "Song History",
+    icon: "i-heroicons-information-circle",
+    defaultOpen: false,
+    slot: "song-history",
+  },
+  {
+    label: "Next Song",
+    icon: "i-heroicons-information-circle",
+    defaultOpen: false,
+    slot: "playing-next",
+  },
+];
 
 const calculateElapsedTime = () => {
   const currentTime = Math.floor(Date.now() / 1000);
@@ -83,17 +124,23 @@ const calculateElapsedTime = () => {
 };
 
 const updateMediaSession = () => {
-  if (typeof navigator !== 'undefined' && 'mediaSession' in navigator && props.nowPlaying?.song) {
+  if (
+    typeof navigator !== "undefined" &&
+    "mediaSession" in navigator &&
+    props.nowPlaying?.song
+  ) {
     const { title, artist, album, art } = props.nowPlaying.song;
     navigator.mediaSession.metadata = new MediaMetadata({
       title,
       artist,
       album: album || "", // Handling case where album might be undefined
-      artwork: [{
-        src: art || "", // Ensure artwork URL is provided
-        sizes: '512x512',
-        type: 'image/jpeg',
-      }],
+      artwork: [
+        {
+          src: art || "", // Ensure artwork URL is provided
+          sizes: "512x512",
+          type: "image/jpeg",
+        },
+      ],
     });
   }
 };
@@ -101,7 +148,12 @@ const updateMediaSession = () => {
 const formatTime = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
-  return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+  return `${minutes}:${secs < 10 ? "0" : ""}${secs}`;
+};
+
+const formatDate = (dateString: number) => {
+  const date = new Date(dateString * 1000);
+  return date.toLocaleTimeString();
 };
 
 const play = () => {
@@ -145,10 +197,10 @@ onMounted(async () => {
     if (isPlaying.value) {
       elapsedTime.value = Math.min(elapsedTime.value + 1, songDuration.value);
       songProgressWidth.value =
-        songDuration.value > 0 ? (elapsedTime.value / songDuration.value) * 100 : 0;
+        songDuration.value > 0
+          ? (elapsedTime.value / songDuration.value) * 100
+          : 0;
     }
   }, 1000);
-
-
 });
 </script>

@@ -14,6 +14,8 @@ export default defineNuxtConfig({
   modules: ['@nuxt/ui'],
   runtimeConfig: {
     public: {
+      BASE_URL: process.env.BASE_URL || 'http://localhost:3000',
+      IS_DEV: process.env.NODE_ENV === 'development',
       AZURACAST_API_KEY: process.env.AZURACAST_API_KEY || 'api_key_missing'
     }
   }
