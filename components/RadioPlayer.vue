@@ -76,6 +76,8 @@
       </template>
     </UAccordion>
 
+    <p class="text-center m-4">Currently listening: {{ listeners?.total }}</p>
+
     <audio
       ref="audio"
       :src="stationUrl"
@@ -86,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import type { NowPlaying, PlayingNext, SongHistory } from "~/types";
+import type { Listeners, NowPlaying, PlayingNext, SongHistory } from "~/types";
 
 const config = useRuntimeConfig();
 const isDev = config.public.IS_DEV;
@@ -96,6 +98,7 @@ const props = defineProps<{
   nowPlaying: NowPlaying | null;
   playingNext: PlayingNext | null;
   songHistory: SongHistory[] | null;
+  listeners: Listeners | null;
 }>();
 
 const audio = ref<HTMLAudioElement | null>(null);

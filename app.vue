@@ -14,6 +14,7 @@
             :nowPlaying="nowPlaying[item.slot]"
             :playingNext="playingNext[item.slot]"
             :songHistory="songHistory[item.slot]"
+            :listeners="activeListeners[item.slot]"
           />
           <p v-else>Currently offline.</p>
         </UCard>
@@ -27,6 +28,7 @@
             :nowPlaying="nowPlaying[item.slot]"
             :playingNext="playingNext[item.slot]"
             :songHistory="songHistory[item.slot]"
+            :listeners="activeListeners[item.slot]"
           />
           <p v-else>Currently offline.</p>
         </UCard>
@@ -40,6 +42,7 @@
             :nowPlaying="nowPlaying[item.slot]"
             :playingNext="playingNext[item.slot]"
             :songHistory="songHistory[item.slot]"
+            :listeners="activeListeners[item.slot]"
           />
           <p v-else>Currently offline.</p>
         </UCard>
@@ -57,6 +60,7 @@ const {
   nowPlaying,
   playingNext,
   songHistory,
+  activeListeners,
   sse,
   reconnectTimeouts,
   initializeSse,
@@ -74,6 +78,7 @@ const fetchNowPlaying = async () => {
       nowPlaying.value[item.station.shortcode] = item.now_playing;
       songHistory.value[item.station.shortcode] = item.song_history || [];
       playingNext.value[item.station.shortcode] = item.playing_next;
+      activeListeners.value[item.station.shortcode] = item.listeners;
     });
   } catch (error) {
     console.error("Failed to fetch song history:", error);

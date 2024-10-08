@@ -1,5 +1,5 @@
 // composables/useRadioState.ts
-import type { StationNowPlaying, PlayingNext, SongHistory, NowPlaying } from "../types";
+import type { PlayingNext, SongHistory, NowPlaying, Listeners } from "../types";
 
 export const useRadioState = () => {
   const stations = ref([
@@ -36,6 +36,24 @@ export const useRadioState = () => {
     narodna_muzika: null,
     mix_muzika: null,
     trending_muzika: null,
+  });
+
+  const activeListeners = ref<Record<string, | Listeners>>({
+    narodna_muzika: {
+      total: 0,
+      unique: 0,
+      current: 0,
+    },
+    mix_muzika: {
+      total: 0,
+      unique: 0,
+      current: 0,
+    },
+    trending_muzika: {
+      total: 0,
+      unique: 0,
+      current: 0,
+    },
   });
 
   const sse = ref<Record<string, EventSource | null>>({
@@ -91,6 +109,7 @@ export const useRadioState = () => {
     nowPlaying,
     playingNext,
     songHistory,
+    activeListeners,
     sse,
     reconnectTimeouts,
     initializeSse,
