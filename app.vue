@@ -5,8 +5,8 @@
       ><br />
       Radio
     </div>
-    <UTabs :items="stations" class="max-w-md">
-      <template #narodna_muzika="{ item }">
+    <UTabs v-model="activeTab" :items="stations" class="max-w-md">
+      <template #narodna_muzika="{ item, index }">
         <UCard>
           <RadioPlayer
             v-if="item.stationUrl"
@@ -15,12 +15,13 @@
             :playingNext="playingNext[item.slot]"
             :songHistory="songHistory[item.slot]"
             :listeners="activeListeners[item.slot]"
+            :isActive="activeTab === index"
           />
           <p v-else>Currently offline.</p>
         </UCard>
       </template>
 
-      <template #mix_muzika="{ item }">
+      <template #mix_muzika="{ item, index }">
         <UCard>
           <RadioPlayer
             v-if="item.stationUrl"
@@ -29,12 +30,13 @@
             :playingNext="playingNext[item.slot]"
             :songHistory="songHistory[item.slot]"
             :listeners="activeListeners[item.slot]"
+            :isActive="activeTab === index"
           />
           <p v-else>Currently offline.</p>
         </UCard>
       </template>
 
-      <template #trending_muzika="{ item }">
+      <template #trending_muzika="{ item, index }">
         <UCard>
           <RadioPlayer
             v-if="item.stationUrl"
@@ -43,6 +45,7 @@
             :playingNext="playingNext[item.slot]"
             :songHistory="songHistory[item.slot]"
             :listeners="activeListeners[item.slot]"
+            :isActive="activeTab === index"
           />
           <p v-else>Currently offline.</p>
         </UCard>
@@ -67,8 +70,10 @@ const {
 } = useRadioState();
 
 const config = useRuntimeConfig();
+const activeTab = ref<number>(0); // Track the active tab with correct type
 
 const fetchNowPlaying = async () => {
+  console.info("Fetching now playing data...");
   try {
     const data: StationNowPlaying[] = await $fetch(
       `${config.public.BASE_URL}/api/nowplaying`
@@ -93,6 +98,8 @@ onMounted(async () => {
       initializeSse(item.slot);
     }
   }
+
+  setInterval(fetchNowPlaying, 60000);
 });
 
 onBeforeUnmount(() => {

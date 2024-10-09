@@ -20,6 +20,12 @@ export const useRadioState = () => {
     },
   ]);
 
+  const lastDataReceived = ref<Record<string, number>>({
+    narodna_muzika: Date.now(),
+    mix_muzika: Date.now(),
+    trending_muzika: Date.now(),
+  });
+
   const nowPlaying = ref<Record<string, NowPlaying | null>>({
     narodna_muzika: null,
     mix_muzika: null,
@@ -78,6 +84,8 @@ export const useRadioState = () => {
       }),
     });
 
+    console.info("Initializing SSE for", stationName);
+
     const sseUri = `${sseBaseUri}?${sseUriParams.toString()}`;
 
     sse.value[stationName] = new EventSource(sseUri);
@@ -85,11 +93,8 @@ export const useRadioState = () => {
     sse.value[stationName].onmessage = (e) => {
       const jsonData = JSON.parse(e.data);
       if ("pub" in jsonData) {
-        // console.log(
-        //   new Date().toLocaleTimeString(),
-        //   "new data:",
-        //   jsonData.pub.data.np.now_playing
-        // );
+        console.info("Received message for", stationName, jsonData.pub.data.np.now_playing);
+        lastDataReceived.value[stationName] = Date.now();
         nowPlaying.value[stationName] = jsonData.pub.data.np.now_playing;
       }
     };

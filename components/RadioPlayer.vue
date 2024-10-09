@@ -52,29 +52,29 @@
       </UButton>
     </div>
 
-    <UAccordion :items="radioQueueAccordion">
-      <template #song-history>
-        <div class="text-gray-900 dark:text-white text-center">
-          <ul v-if="songHistory" class="text-sm">
-            <li v-for="item in songHistory" :key="item.song.id">
-              <div>{{ formatDate(item.played_at) }}</div>
-              <strong>{{ item.song.artist }}</strong> - {{ item.song.title }}
-            </li>
-          </ul>
+    <!-- Display the Previous and Next songs -->
+    <div
+      class="flex justify-between text-center my-4 p-2 border-gray-700 rounded-sm"
+    >
+      <div class="w-1/2 px-2">
+        <h4 class="text-gray-500 font-semibold">Previous</h4>
+        <div v-if="songHistory">
+          <p class="text-gray-700 font-medium">
+            {{ songHistory[0]?.song.artist }}
+          </p>
+          <p class="text-gray-600">{{ songHistory[0]?.song.title }}</p>
         </div>
-      </template>
-
-      <template #playing-next>
-        <div class="text-gray-900 dark:text-white text-center">
-          <ul v-if="playingNext" class="text-sm">
-            <li>
-              <div>{{ formatDate(playingNext.cued_at) }}</div>
-              {{ playingNext.song.artist }} - {{ playingNext.song.title }}
-            </li>
-          </ul>
+      </div>
+      <div class="w-1/2 px-2">
+        <h4 class="text-gray-500 font-semibold">Next</h4>
+        <div v-if="playingNext">
+          <p class="text-gray-700 font-medium">
+            {{ playingNext.song.artist }}
+          </p>
+          <p class="text-gray-600">{{ playingNext.song.title }}</p>
         </div>
-      </template>
-    </UAccordion>
+      </div>
+    </div>
 
     <p class="text-center m-4">Currently listening: {{ listeners?.total }}</p>
 
@@ -99,6 +99,7 @@ const props = defineProps<{
   playingNext: PlayingNext | null;
   songHistory: SongHistory[] | null;
   listeners: Listeners | null;
+  isActive: boolean; // New prop to track if the tab is active
 }>();
 
 const audio = ref<HTMLAudioElement | null>(null);
@@ -106,20 +107,6 @@ const isPlaying = ref(false);
 const elapsedTime = ref(0);
 const songProgressWidth = ref(0);
 const songDuration = computed(() => props.nowPlaying?.duration || 0);
-const radioQueueAccordion = [
-  {
-    label: "Song History",
-    icon: "i-heroicons-information-circle",
-    defaultOpen: false,
-    slot: "song-history",
-  },
-  {
-    label: "Next Song",
-    icon: "i-heroicons-information-circle",
-    defaultOpen: false,
-    slot: "playing-next",
-  },
-];
 
 const calculateElapsedTime = () => {
   const currentTime = Math.floor(Date.now() / 1000);
@@ -128,6 +115,7 @@ const calculateElapsedTime = () => {
 
 const updateMediaSession = () => {
   if (
+    props.isActive && // Only update if the tab is active
     typeof navigator !== "undefined" &&
     "mediaSession" in navigator &&
     props.nowPlaying?.song
